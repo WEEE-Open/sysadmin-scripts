@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Exit if any errors occur
+set -e
+
+# Ask for username
+echo "User to DELETE: "
+read USERNAME
+
+# Check if user exists
+if ! id -u "$USERNAME" >/dev/null 2>&1; then
+    echo "User '$USERNAME' does not exists."
+    exit 1
+fi
+
+# Ask for a confirmation (better safe than sorry asd)
+read -p "Are you sure to delete user '$USERNAME'? This action is irreversible! (y/N) " -n 1 REPLY
+echo
+if ! [[ $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+fi
+
+# Delete user and its home directory
+userdel -r $USERNAME
+
+# Check if USERGROUPS_ENAB is set to true (if it is 'userdel' command removes also the group)
+if [ $(grep USERGROUPS_ENAB /etc/login.defs | awk '{ print $NF }') != "yes" ]; then
+    # Delete user group
+    groupdel $USERNAME
+fi
+
+# Delete SSH key file
+rm -rf /etc/ssh/authorized-keys/$USERNAME
+
+# Finish
+echo "Successfully removed user $USERNAME"
