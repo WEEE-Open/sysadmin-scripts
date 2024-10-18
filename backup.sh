@@ -3,18 +3,37 @@
 THIS=$(realpath -s "$0")
 
 ON_THE_SERVER=false
+IGNORE_MISSING=false
+# Check if parameteres are passed
 if [[ $# -gt 0 ]]; then
 	if [[ "$1" == "-s" ]]; then
 		ON_THE_SERVER=true
 		shift
 	fi
+	if [[ "$1" == "-i" ]]; then
+		IGNORE_MISSING=true
+		shift
+	fi
 fi
 
-SERVER=boulangerie
-POSTGRES_ROOT_PASSWORD=REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME
-MYSQL_ROOT_PASSWORD=REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME
-MARIADB_ROOT_PASSWORD=REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME-REPLACE-ME
-REMOTE_BACKUP_DIR=boulangerie-backup
+# Load passwords from env file
+source .env
+
+# Check if --ignore parameter is set
+if [[ "$IGNORE_MISSING" != "true" ]]; then
+	if [ -z $POSTGRES_ROOT_PASSWORD ]; then
+		echo "Password for POSTGRES is not present. Closing script."
+		exit 1
+	fi
+	if [ -z $MYSQL_ROOT_PASSWORD ]; then
+		echo "Password for MYSQL is not present. Closing script."
+		exit 1
+	fi
+	if [ -z $MARIADB_ROOT_PASSWORD ]; then
+		echo "Password for MARIADB is not present. Closing script."
+		exit 1
+	fi
+fi
 
 mariadb_backup () {
 	DB=$1
@@ -87,6 +106,7 @@ notify () {
 	notify-send -i drive-harddisk "Backup performed"
 }
 
+# Script is being executed on the server, so run the jobs
 if [[ "$ON_THE_SERVER" == "true" ]]; then
 	rm -rf $REMOTE_BACKUP_DIR
     mkdir $REMOTE_BACKUP_DIR
@@ -143,6 +163,7 @@ if [[ "$ON_THE_SERVER" == "true" ]]; then
 			;;
 		esac
 	done
+# Script is not running on the server, select backups
 else
 	if [[ $# -lt 1 ]]; then
 		# https://stackoverflow.com/a/1970254
@@ -166,6 +187,7 @@ else
 		exit 1
 	fi
 
+	# Copy the script on server and set permissions
  	scp $THIS $SERVER:boulangerie-backup-script.sh
 	ssh -t $SERVER "bash -s <<EOF
     #!/bin/bash
