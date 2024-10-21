@@ -19,23 +19,31 @@ fi
 # Load passwords from env file
 source .env
 
-# Check if --ignore parameter is set
+# Check if -i parameter is set
 if [[ "$IGNORE_MISSING" != "true" ]]; then
+	if [ ! -f .env ]; then
+		echo -e "Env file not found!\nUse -i parameter to ignore this check."
+		exit 1
+	fi
 	if [ -z $POSTGRES_ROOT_PASSWORD ]; then
-		echo "Password for POSTGRES is not present. Closing script."
+		echo -e "Password for POSTGRES is not present.\nUse -i parameter to ignore this check."
 		exit 1
 	fi
 	if [ -z $MYSQL_ROOT_PASSWORD ]; then
-		echo "Password for MYSQL is not present. Closing script."
+		echo -e "Password for MYSQL is not present.\nUse -i parameter to ignore this check."
 		exit 1
 	fi
 	if [ -z $MARIADB_ROOT_PASSWORD ]; then
-		echo "Password for MARIADB is not present. Closing script."
+		echo "Password for MARIADB is not present.\nUse -i parameter to ignore this check."
 		exit 1
 	fi
 fi
 
 mariadb_backup () {
+	if [ -z $MARIADB_ROOT_PASSWORD ]; then
+		echo "Password for MARIADB is not present. Skipping backup task."
+		return 0
+	fi
 	DB=$1
 	DB_PASSWORD=$MARIADB_ROOT_PASSWORD
 	OPTIONS=$2
@@ -46,6 +54,10 @@ mariadb_backup () {
 }
 
 mysql_backup () {
+	if [ -z $MYSQL_ROOT_PASSWORD ]; then
+		echo "Password for MYSQL is not present. Skipping backup task."
+		return 0
+	fi
 	DB=$1
 	DB_PASSWORD=$MYSQL_ROOT_PASSWORD
 	OPTIONS=$2
@@ -56,6 +68,10 @@ mysql_backup () {
 }
 
 postgres_backup () {
+	if [ -z $POSTGRES_ROOT_PASSWORD ]; then
+		echo "Password for POSTGRES is not present. Skipping backup task."
+		return 0
+	fi
 	DB=$1
 	OPTIONS=$2
 	echo "--- PostgreSQL $DB ---"
@@ -163,7 +179,7 @@ if [[ "$ON_THE_SERVER" == "true" ]]; then
 			;;
 		esac
 	done
-# Script is not running on the server, select backups
+# Script is not running on the server, select backup tasks
 else
 	if [[ $# -lt 1 ]]; then
 		# https://stackoverflow.com/a/1970254
@@ -190,7 +206,7 @@ else
 	# Copy the script on server and set permissions
  	scp $THIS $SERVER:boulangerie-backup-script.sh
 	ssh -t $SERVER "bash -s <<EOF
-    #!/bin/bash
+    !/bin/bash
     set -e
     chmod ug+x boulangerie-backup-script.sh
     chmod o-r boulangerie-backup-script.sh
