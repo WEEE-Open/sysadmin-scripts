@@ -4,6 +4,10 @@ THIS=$(realpath -s "$0")
 
 ON_THE_SERVER=false
 IGNORE_MISSING=false
+
+SERVER=boulangerie
+REMOTE_BACKUP_DIR=boulangerie-backup-proper
+
 # Check if parameteres are passed
 if [[ $# -gt 0 ]]; then
 	if [[ "$1" == "-s" ]]; then
@@ -16,8 +20,10 @@ if [[ $# -gt 0 ]]; then
 	fi
 fi
 
-# Load passwords from env file
-source .env
+# Load passwords from db env files
+source /data/containers/sources/mariadb/mariadb.env
+source /data/containers/sources/mysql/mysql.env
+source /data/containers/sources/postgres/postgres.env
 
 # Check if -i parameter is set
 if [[ "$IGNORE_MISSING" != "true" ]]; then
@@ -25,7 +31,7 @@ if [[ "$IGNORE_MISSING" != "true" ]]; then
 		echo -e "Env file not found!\nUse -i parameter to ignore this check."
 		exit 1
 	fi
-	if [ -z $POSTGRES_ROOT_PASSWORD ]; then
+	if [ -z $POSTGRES_PASSWORD ]; then
 		echo -e "Password for POSTGRES is not present.\nUse -i parameter to ignore this check."
 		exit 1
 	fi
@@ -68,7 +74,7 @@ mysql_backup () {
 }
 
 postgres_backup () {
-	if [ -z $POSTGRES_ROOT_PASSWORD ]; then
+	if [ -z $POSTGRES_PASSWORD ]; then
 		echo "Password for POSTGRES is not present. Skipping backup task."
 		return 0
 	fi
@@ -76,7 +82,7 @@ postgres_backup () {
 	OPTIONS=$2
 	echo "--- PostgreSQL $DB ---"
 
-	sudo PGPASSWORD=$POSTGRES_ROOT_PASSWORD podman exec -it postgres-server pg_dump -w $OPTIONS -Upostgres $DB | gzip > $REMOTE_BACKUP_DIR/backup-$DB.sql.gz
+	sudo PGPASSWORD=$POSTGRES_PASSWORD podman exec -it postgres-server pg_dump -w $OPTIONS -Upostgres $DB | gzip > $REMOTE_BACKUP_DIR/backup-$DB.sql.gz
 	echo "Created $REMOTE_BACKUP_DIR/backup-$DB.sql.gz"
 }
 
