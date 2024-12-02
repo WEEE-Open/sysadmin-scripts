@@ -13,7 +13,69 @@ BACKUP_DIR=/data/containers/backups
 TYPE=${TYPE:-manual}
 
 if [[ $TYPE=="manual" ]]; then
-	#TODO
+	# Select service to backup with whiptail
+	SERVICE_TO_BACKUP=$(whiptail --title "Select service to manually backup" --radiolist \
+			"Select service to backup" 0 0 0 \
+			"keycloak" "Keycloak" OFF \
+			"ds389" "DS389" OFF \
+			"nginx" "Nginx" OFF \
+			"opendkim" "Opendkim" OFF \
+			"postfix" "Postfix" OFF \
+			"bookstack" "Bookstack" OFF \
+			"crauto" "Crauto" OFF \
+			"nextcloud" "Nextcloud" OFF \
+			"tarallo" "Tarallo" OFF \
+			"weeehire" "WEEEHire" OFF \
+			"wordpress" "Wordpress" OFF \
+            "yourls" "YOURLS" OFF \
+            "sources" "Container sources" OFF \
+			3>&1 1>&2 2>&3)
+
+	# Execute the backup
+	case $SERVICE_TO_BACKUP in
+		"keycloak")
+			keycloak_backup
+			;;
+		"ds389")
+			ldap_backup
+			;;
+		"nginx")
+			nginx_backup
+			;;
+		"opendkim")
+			opendkim_backup
+			;;
+		"postfix")
+			postfix_backup
+			;;
+		"bookstack")
+			bookstack_backup
+			;;
+		"crauto")
+			crauto_backup
+			;;
+		"nextcloud")
+			nextcloud_backup
+			;;
+		"tarallo")
+			tarallo_backup
+			;;
+		"weeehire")
+			weeehire_backup
+			;;
+		"wordpress")
+			wordpress_backup
+			;;
+		"yourls")
+			yourls_backup
+			;;
+		"sources")
+			sources_backup
+			;;
+		*)
+			echo "Unknown service '$SERVICE_TO_BACKUP' to backup"
+			;;
+	esac
 fi
 
 if [[ $TYPE=="automatic" ]]; then
