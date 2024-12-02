@@ -73,10 +73,14 @@ ldap_dump () {
 
 restic_backup () {
 	NAME=$1
-	FILES=("${@:2}")
+	FILES=$(printf "%s\n" "${@:2}")
 	echo "--- Backing up $NAME ($TYPE) ---"
 
-	sudo restic -r $REPO --tag $NAME --tag $TYPE --verbose backup --include $FILES
+	# Create temp file
+	echo $FILES > wtb.tmp
+	sudo restic -r $REPO --tag $NAME --tag $TYPE --verbose backup --files-from "wtb.tmp"
+	# Delete temp file
+	rm wtb.tmp
 	echo "--- Backed up $NAME ($TYPE) ---"
 }
 
