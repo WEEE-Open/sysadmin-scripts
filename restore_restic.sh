@@ -22,6 +22,7 @@ SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
 			"weeehire" "WEEEHire" OFF \
 			"wordpress" "Wordpress" OFF \
             "yourls" "YOURLS" OFF \
+            "sources" "Container sources" OFF \
 			3>&1 1>&2 2>&3)
 
 # 1.2 get list of snapshots of selected
@@ -98,6 +99,9 @@ case $SERVICE_TO_RESTORE in
         ;;
     "yourls")
         yourls_restore
+        ;;
+    "sources")
+        sources_restore
         ;;
     *)
         echo "Unknown service $SERVICE_TO_RESTORE to restore"
