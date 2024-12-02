@@ -3,9 +3,11 @@ source /data/containers/sources/mariadb/mariadb.env
 source /data/containers/sources/mysql/mysql.env
 source /data/containers/sources/postgres/postgres.env
 
-REPO=restic-demo
-RESTORE_DIR=restore-demo
+# Set variables
+REPO=sftp:rocco:/data/restic-backups
+SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
+RESTORE_DIR=/data/containers/restore
 
 # 1. select service to restore
 SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
@@ -25,7 +27,7 @@ SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
             "sources" "Container sources" OFF \
 			3>&1 1>&2 2>&3)
 
-# 1.2 get list of snapshots of selected
+# 1.2 get list of snapshots of selected service
 restic snapshots -r $REPO | grep $SERVICE_TO_RESTORE > "ids.tmp"
 
 sorted_data=$(sort -k2,3r "ids.tmp" | awk '
@@ -104,7 +106,7 @@ case $SERVICE_TO_RESTORE in
         sources_restore
         ;;
     *)
-        echo "Unknown service $SERVICE_TO_RESTORE to restore"
+        echo "Unknown service '$SERVICE_TO_RESTORE' to restore"
         ;;
 esac
 

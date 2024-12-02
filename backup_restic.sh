@@ -77,10 +77,10 @@ restic_backup () {
 	echo "--- Backing up $NAME ($TYPE) ---"
 
 	# Create temp file
-	echo $FILES > wtb.tmp
+	echo $FILES > "wtb.tmp"
 	sudo restic -r $REPO --tag $NAME --tag $TYPE --verbose backup --files-from "wtb.tmp"
 	# Delete temp file
-	rm wtb.tmp
+	rm "wtb.tmp"
 	echo "--- Backed up $NAME ($TYPE) ---"
 }
 
