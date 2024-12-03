@@ -197,8 +197,7 @@ weeehire_backup () {
 }
 
 wordpress_backup () {
-	mysql_dump "weeebsite" ""
-	#TODO
+	restic_backup "wordpress" "$(ls -At $VOLUME_DIR/backups/wordpress/*.zip | head -n 1)"
 }
 
 yourls_backup () {
