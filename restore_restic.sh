@@ -4,7 +4,7 @@ source /data/containers/sources/mysql/mysql.env
 source /data/containers/sources/postgres/postgres.env
 
 # Set variables
-REPO=sftp:rocco:/data/restic-backups
+RESTIC_REPOSITORY=sftp:rocco-backup:/data/boulangerie-backups/restic
 SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
 RESTORE_DIR=/data/containers/restore
@@ -28,7 +28,7 @@ SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
 			3>&1 1>&2 2>&3)
 
 # 1.2 get list of snapshots of selected service
-restic snapshots -r $REPO | grep $SERVICE_TO_RESTORE > "ids.tmp"
+restic snapshots | grep $SERVICE_TO_RESTORE > "ids.tmp"
 
 sorted_data=$(sort -k2,3r "ids.tmp" | awk '
 {
@@ -62,7 +62,7 @@ SNAPSHOT_TO_RESTORE=$(whiptail --radiolist "Select snapshot to restore:" 0 0 0 "
 
 # 3. restore files (and DB)
 echo "--- Restoring snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
-restic -r $REPO restore $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
+restic restore $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
 echo "--- Restored snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
 
 case $SERVICE_TO_RESTORE in
@@ -197,8 +197,7 @@ weeehire_restore () {
 }
 
 wordpress_restore () {
-	mysql_restore "weeebsite" "??filename??"
-	#TODO
+    #TODO
 }
 
 yourls_restore () {

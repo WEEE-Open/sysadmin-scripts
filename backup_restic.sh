@@ -4,7 +4,7 @@ source /data/containers/sources/mysql/mysql.env
 source /data/containers/sources/postgres/postgres.env
 
 # Set variables
-REPO=sftp:rocco:/data/restic-backups
+RESTIC_REPOSITORY=sftp:rocco-backup:/data/boulangerie-backups/restic
 SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
 BACKUP_DIR=/data/containers/backups
@@ -140,7 +140,7 @@ restic_backup () {
 
 	# Create temp file
 	echo $FILES > "wtb.tmp"
-	sudo restic -r $REPO --tag $NAME --tag $TYPE --verbose backup --files-from "wtb.tmp"
+	sudo restic backup --tag $NAME --tag $TYPE --verbose --files-from "wtb.tmp"
 	# Delete temp file
 	rm "wtb.tmp"
 	echo "--- Backed up $NAME ($TYPE) ---"
