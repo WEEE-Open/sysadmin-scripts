@@ -9,107 +9,6 @@ SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
 RESTORE_DIR=/data/containers/restore
 
-# 1. select service to restore
-SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
-			"Select service to restore" 0 0 0 \
-			"keycloak" "Keycloak" OFF \
-			"ds389" "DS389" OFF \
-			"nginx" "Nginx" OFF \
-			"opendkim" "Opendkim" OFF \
-			"postfix" "Postfix" OFF \
-			"bookstack" "Bookstack" OFF \
-			"crauto" "Crauto" OFF \
-			"nextcloud" "Nextcloud" OFF \
-			"tarallo" "Tarallo" OFF \
-			"weeehire" "WEEEHire" OFF \
-			"wordpress" "Wordpress" OFF \
-            "yourls" "YOURLS" OFF \
-            "sources" "Container sources" OFF \
-			3>&1 1>&2 2>&3)
-
-# 1.2 get list of snapshots of selected service
-restic snapshots | grep $SERVICE_TO_RESTORE > "ids.tmp"
-
-sorted_data=$(sort -k2,3r "ids.tmp" | awk '
-{
-    id = $1;
-    datetime = $2 " " $3;
-    tags = $5;
-    size = $NF;
-
-    printf "%s %s %s %s\n", id, datetime, tags, size;
-}')
-rm "ids.tmp"
-
-entries=()
-while IFS= read -r line; do
-    [ -z "$line" ] && continue
-
-    id=$(echo "$line" | awk '{print $1}')
-    date=$(echo "$line" | awk '{print $2}')
-    tags=$(echo "$line" | awk '{print $3}')
-
-    entries+=("$id" "$datetime $tags" "OFF")
-done <<< "$sorted_data"
-
-if [ ${#entries[@]} -eq 0 ]; then
-    echo "There are no snapshots available for $SERVICE_TO_RESTORE."
-    exit 0
-fi
-
-# 2. select which snapshot has to be restored
-SNAPSHOT_TO_RESTORE=$(whiptail --radiolist "Select snapshot to restore:" 0 0 0 "${entries[@]}" 3>&1 1>&2 2>&3)
-
-# 3. restore files (and DB)
-echo "--- Restoring snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
-restic restore $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
-echo "--- Restored snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
-
-case $SERVICE_TO_RESTORE in
-    "keycloak")
-        keycloak_restore
-        ;;
-    "ds389")
-        ldap_restore
-        ;;
-    "nginx")
-        nginx_restore
-        ;;
-    "opendkim")
-        opendkim_restore
-        ;;
-    "postfix")
-        postfix_restore
-        ;;
-    "bookstack")
-        bookstack_restore
-        ;;
-    "crauto")
-        crauto_restore
-        ;;
-    "nextcloud")
-        nextcloud_restore
-        ;;
-    "tarallo")
-        tarallo_restore
-        ;;
-    "weeehire")
-        weeehire_restore
-        ;;
-    "wordpress")
-        wordpress_restore
-        ;;
-    "yourls")
-        yourls_restore
-        ;;
-    "sources")
-        sources_restore
-        ;;
-    *)
-        echo "Unknown service '$SERVICE_TO_RESTORE' to restore"
-        ;;
-esac
-
 ### DB restore functions
 
 mariadb_restore (){
@@ -141,9 +40,9 @@ postgres_restore () {
 	echo "Restored $FILE"
 }
 
-ldap_restore () {
+#ldap_restore () {
 	#TODO
-}
+#}
 
 
 ### Restore functions
@@ -153,9 +52,9 @@ keycloak_restore () {
     cp -R "$RESTORE_DIR/keycloak/." "$VOLUME_DIR/keycloak"
 }
 
-ldap_restore () {
+#ldap_restore () {
 	#TODO
-}
+#}
 
 nginx_restore () {
     cp -R "$RESTORE_DIR/nginx/." "$VOLUME_DIR/nginx"
@@ -209,3 +108,104 @@ yourls_restore () {
 sources_restore () {
     cp -R "$RESTORE_DIR/." "$SOURCE_DIR"
 }
+
+# 1. select service to restore
+SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
+			"Select service to restore" 0 0 0 \
+			"keycloak" "Keycloak" OFF \
+			"ds389" "DS389" OFF \
+			"nginx" "Nginx" OFF \
+			"opendkim" "Opendkim" OFF \
+			"postfix" "Postfix" OFF \
+			"bookstack" "Bookstack" OFF \
+			"crauto" "Crauto" OFF \
+			"nextcloud" "Nextcloud" OFF \
+			"tarallo" "Tarallo" OFF \
+			"weeehire" "WEEEHire" OFF \
+			"wordpress" "Wordpress" OFF \
+            "yourls" "YOURLS" OFF \
+            "sources" "Container sources" OFF \
+			3>&1 1>&2 2>&3)
+
+# 1.2 get list of snapshots of selected service
+restic snapshots | grep $SERVICE_TO_RESTORE > "ids.tmp"
+
+sorted_data=$(sort -k2,3r "ids.tmp" | awk '
+{
+    id = $1;
+    datetime = $2 " " $3;
+    tags = $5;
+    size = $NF;
+
+    printf "%s %s %s %s\n", id, datetime, tags, size;
+}')
+rm "ids.tmp"
+
+entries=()
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+
+    id=$(echo "$line" | awk '{print $1}')
+    date=$(echo "$line" | awk '{print $2}')
+    tags=$(echo "$line" | awk '{print $3}')
+
+    entries+=("$id" "$datetime $tags" "OFF")
+done <<< "$sorted_data"
+
+if [ ${#entries[@]} -eq 0 ]; then
+    echo "There are no snapshots available for $SERVICE_TO_RESTORE."
+    exit 0
+fi
+
+# 2. select which snapshot has to be restored
+SNAPSHOT_TO_RESTORE=$(whiptail --radiolist "Select snapshot to restore:" 0 0 0 "${entries[@]}" 3>&1 1>&2 2>&3)
+
+# 3. restore files (and DB)
+echo "--- Restoring snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
+restic restore -r $RESTIC_REPOSITORY --password-file /root/restic.txt $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
+echo "--- Restored snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
+
+case $SERVICE_TO_RESTORE in
+    "keycloak")
+        keycloak_restore
+        ;;
+    "ds389")
+        ldap_restore
+        ;;
+    "nginx")
+        nginx_restore
+        ;;
+    "opendkim")
+        opendkim_restore
+        ;;
+    "postfix")
+        postfix_restore
+        ;;
+    "bookstack")
+        bookstack_restore
+        ;;
+    "crauto")
+        crauto_restore
+        ;;
+    "nextcloud")
+        nextcloud_restore
+        ;;
+    "tarallo")
+        tarallo_restore
+        ;;
+    "weeehire")
+        weeehire_restore
+        ;;
+    "wordpress")
+        wordpress_restore
+        ;;
+    "yourls")
+        yourls_restore
+        ;;
+    "sources")
+        sources_restore
+        ;;
+    *)
+        echo "Unknown service '$SERVICE_TO_RESTORE' to restore"
+        ;;
+esac
