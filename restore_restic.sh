@@ -5,8 +5,10 @@ source /data/containers/sources/postgres/postgres.env
 
 # Set variables
 RESTIC_REPOSITORY=sftp:rocco-backup:/data/boulangerie-backups/restic
+RESTIC_PASSWORD_FILE=/root/restic.txt
 SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
+BACKUP_DIR=/data/containers/backups
 RESTORE_DIR=/data/containers/restore
 
 ### DB restore functions
@@ -19,6 +21,7 @@ mariadb_restore (){
 
     sudo podman exec -it mariadb-server zcat "$FILE" | mysql -uroot -p $DB_PASSWORD $DB
 	echo "Restored $FILE"
+    rm $FILE
 }
 
 mysql_restore () {
@@ -29,6 +32,7 @@ mysql_restore () {
 
 	sudo podman exec -it mysql-server zcat "$FILE" | mysql -uroot -p $DB_PASSWORD $DB
 	echo "Restored $FILE"
+    rm $FILE
 }
 
 postgres_restore () {
@@ -38,6 +42,7 @@ postgres_restore () {
 
 	sudo PGPASSWORD=$POSTGRES_ROOT_PASSWORD podman exec -it postgres-server zcat "$FILE" | psql -Upostgres $DB
 	echo "Restored $FILE"
+    rm $FILE
 }
 
 #ldap_restore () {
@@ -48,8 +53,8 @@ postgres_restore () {
 ### Restore functions
 
 keycloak_restore () {
-	postgres_restore "keycloak" "$RESTORE_DIR/backup-keycloak.sql.gz"
-    cp -R "$RESTORE_DIR/keycloak/." "$VOLUME_DIR/keycloak"
+	postgres_restore "keycloak" "$RESTORE_DIR/$BACKUP_DIR/backup-keycloak.sql.gz"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/keycloak" "$VOLUME_DIR/keycloak"
 }
 
 #ldap_restore () {
@@ -57,15 +62,15 @@ keycloak_restore () {
 #}
 
 nginx_restore () {
-    cp -R "$RESTORE_DIR/nginx/." "$VOLUME_DIR/nginx"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/nginx" "$VOLUME_DIR/nginx"
 }
 
 opendkim_restore () {
-    cp -R "$RESTORE_DIR/opendkim/." "$VOLUME_DIR/opendkim"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/opendkim" "$VOLUME_DIR/opendkim"
 }
 
 postfix_restore () {
-	cp -R "$RESTORE_DIR/postfix/." "$VOLUME_DIR/postfix"
+	rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/postfix" "$VOLUME_DIR/postfix"
 }
 
 # Websites
@@ -73,40 +78,43 @@ postfix_restore () {
 bookstack_restore () {
 	BASEDIR=$VOLUME_DIR/websites/bookstack
 	mariadb_restore "bookstack_db" "$RESTORE_DIR/backup-bookstack_db.sql.gz"
-    cp -R "$RESTORE_DIR/{public/uploads/.,storage/uploads/.,.env}" "$BASEDIR/"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$BASEDIR/public/uploads" "$BASEDIR/public/uploads"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$BASEDIR/storage/uploads" "$BASEDIR/storage/uploads"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$BASEDIR/.env" "$BASEDIR/.env"
 }
 
 crauto_restore () {
-    cp "$RESTORE_DIR/websites/crauto/config/config.php" "$VOLUME_DIR/websites/crauto/config/config.php"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/websites/crauto/config/config.php" "$VOLUME_DIR/websites/crauto/config/config.php"
 }
 
 nextcloud_restore () {
 	BASEDIR=$VOLUME_DIR/websites/nextcloud
-	postgres_restore "nextcloud" "$RESTORE_DIR/backup-nextcloud.sql.gz"
-    cp -R "$RESTORE_DIR/{data/.,config/.}" "$BASE_DIR/" 
+	postgres_restore "nextcloud" "$RESTORE_DIR/$BACKUP_DIR/backup-nextcloud.sql.gz"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$BASEDIR/data" "$BASEDIR/data"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$BASEDIR/config" "$BASEDIR/config"
 }
 
 tarallo_restore () {
-	mariadb_restore "tarallo_db" "$RESTORE_DIR/backup-tarallo_db.sql.gz"
-	cp -R "$RESTORE_DIR/websites/tarallo/." "$VOLUME_DIR/websites/tarallo"
+	mariadb_restore "tarallo_db" "$RESTORE_DIR/$BACKUP_DIR/backup-tarallo_db.sql.gz"
+	rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/websites/tarallo" "$VOLUME_DIR/websites/tarallo"
 }
 
 weeehire_restore () {
-    cp "$RESTORE_DIR/websites/weeehire/database/weeehire.db" "$VOLUME_DIR/websites/weeehire/database/weeehire.db"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/websites/weeehire/database/weeehire.db" "$VOLUME_DIR/websites/weeehire/database/weeehire.db"
 }
 
-wordpress_restore () {
-    #TODO
-}
+#wordpress_restore () {
+    #podman exec php cli/bgbkup-cli.php restore zip=/home/user/boldgrid_backup/backup.zip
+#}
 
 yourls_restore () {
-    cp -R "$RESTORE_DIR/websites/yourls/." "$VOLUME_DIR/websites/yourls"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/websites/yourls" "$VOLUME_DIR/websites/yourls"
 }
 
 # Sources
 
 sources_restore () {
-    cp -R "$RESTORE_DIR/." "$SOURCE_DIR"
+    rsync -raHAX --info=progress2 "$RESTORE_DIR/." "$SOURCE_DIR"
 }
 
 # 1. select service to restore
@@ -128,16 +136,16 @@ SERVICE_TO_RESTORE=$(whiptail --title "Select service to restore" --radiolist \
 			3>&1 1>&2 2>&3)
 
 # 1.2 get list of snapshots of selected service
-restic snapshots | grep $SERVICE_TO_RESTORE > "ids.tmp"
+restic snapshots -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE | grep $SERVICE_TO_RESTORE > "ids.tmp"
 
 sorted_data=$(sort -k2,3r "ids.tmp" | awk '
 {
     id = $1;
-    datetime = $2 " " $3;
+    date = $2;
+    time = $3;
     tags = $5;
-    size = $NF;
 
-    printf "%s %s %s %s\n", id, datetime, tags, size;
+    printf "%s %s %s %s\n", id, date, time, tags;
 }')
 rm "ids.tmp"
 
@@ -147,9 +155,10 @@ while IFS= read -r line; do
 
     id=$(echo "$line" | awk '{print $1}')
     date=$(echo "$line" | awk '{print $2}')
-    tags=$(echo "$line" | awk '{print $3}')
+    time=$(echo "$line" | awk '{print $3}')
+    tags=$(echo "$line" | awk '{print $4}')
 
-    entries+=("$id" "$datetime $tags" "OFF")
+    entries+=("$id" "$date $time $tags" "OFF")
 done <<< "$sorted_data"
 
 if [ ${#entries[@]} -eq 0 ]; then
@@ -162,8 +171,11 @@ SNAPSHOT_TO_RESTORE=$(whiptail --radiolist "Select snapshot to restore:" 0 0 0 "
 
 # 3. restore files (and DB)
 echo "--- Restoring snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
-restic restore -r $RESTIC_REPOSITORY --password-file /root/restic.txt $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
-echo "--- Restored snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"
+restic restore -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE $SNAPSHOT_TO_RESTORE --verbose --target $RESTORE_DIR
+
+if [[ "$1" != "autorestore" ]]; then
+    exit
+fi
 
 case $SERVICE_TO_RESTORE in
     "keycloak")
@@ -209,3 +221,8 @@ case $SERVICE_TO_RESTORE in
         echo "Unknown service '$SERVICE_TO_RESTORE' to restore"
         ;;
 esac
+
+# Clear restore directory
+rm -r /data/containers/restore/*
+
+echo "--- Restored snapshot $SNAPSHOT_TO_RESTORE ($SERVICE_TO_RESTORE) ---"

@@ -1,15 +1,17 @@
-# Source DB and repo passwords
-source /data/containers/sources/mariadb/mariadb.env
-source /data/containers/sources/mysql/mysql.env
-source /data/containers/sources/postgres/postgres.env
-
 # Set variables
+RESTIC_EXTRA_ARGS=$@
 RESTIC_REPOSITORY=sftp:rocco-backup:/data/boulangerie-backups/restic
+RESTIC_PASSWORD_FILE=/root/restic.txt
 SOURCE_DIR=/data/containers/sources
 VOLUME_DIR=/data/containers/volumes
 BACKUP_DIR=/data/containers/backups
 
-# If $TYPE is not specified, assume manual backup
+# Source DB and repo passwords
+source $SOURCE_DIR/mariadb/mariadb.env
+source $SOURCE_DIR/mysql/mysql.env
+source $SOURCE_DIR/postgres/postgres.env
+
+# If $TYPE is not set, assume manual backup
 TYPE=${TYPE:-manual}
 
 ### Dump functions
@@ -50,12 +52,11 @@ postgres_dump () {
 
 restic_backup () {
 	NAME=$1
-	FILES=$(printf "%s\n" "${@:2}")
+	# Create temp file
+	echo "${@:2}" | tr ' ' '\n' > wtb.tmp
 	echo "--- Backing up $NAME ($TYPE) ---"
 
-	# Create temp file
-	echo $FILES > "wtb.tmp"
-	sudo restic backup --repository $RESTIC_REPOSITORY --password-file /root/restic.txt --tag $NAME --tag $TYPE --verbose --files-from "wtb.tmp"
+	sudo restic backup $RESTIC_EXTRA_ARGS -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE --tag $NAME --tag $TYPE --verbose --files-from "wtb.tmp"
 	# Delete temp file
 	rm "wtb.tmp"
 	echo "--- Backed up $NAME ($TYPE) ---"
@@ -65,7 +66,8 @@ restic_backup () {
 
 keycloak_backup () {
 	postgres_dump "keycloak" "-C"
-	restic_backup "keycloak" "$VOLUME_DIR/keycloak" "$BACKUP_DIR/backup-nextcloud.sql.gz"
+	restic_backup "keycloak" "$VOLUME_DIR/keycloak" "$BACKUP_DIR/backup-keycloak.sql.gz"
+	rm "$BACKUP_DIR/backup-keycloak.sql.gz"
 }
 
 #ldap_backup () {
@@ -89,6 +91,7 @@ bookstack_backup () {
 	BASEDIR=$VOLUME_DIR/websites/bookstack
 	mariadb_dump "bookstack_db" ""
 	restic_backup "bookstack" "$BASEDIR/public/uploads" "$BASEDIR/storage/uploads" "$BASEDIR/.env" "$BACKUP_DIR/backup-bookstack_db.sql.gz"
+	rm "$BACKUP_DIR/backup-bookstack_db.sql.gz"
 }
 
 crauto_backup () {
@@ -99,11 +102,13 @@ nextcloud_backup () {
 	BASEDIR=$VOLUME_DIR/websites/nextcloud
 	postgres_dump "nextcloud" "-C"
 	restic_backup "nextcloud" "$BASEDIR/data" "$BASEDIR/config" "$BACKUP_DIR/backup-nextcloud.sql.gz"
+	rm "$BACKUP_DIR/backup-nextcloud.sql.gz"
 }
 
 tarallo_backup () {
 	mariadb_dump "tarallo_db" "--ignore-table=tarallo_db.ProductItemFeature --ignore-table=tarallo_db.ProductItemFeatureUnified"
 	restic_backup "tarallo" "$VOLUME_DIR/websites/tarallo" "$BACKUP_DIR/backup-tarallo_db.sql.gz"
+	rm "$BACKUP_DIR/backup-tarallo_db.sql.gz"
 }
 
 weeehire_backup () {
@@ -148,9 +153,9 @@ if [[ "$TYPE" == "manual" ]]; then
 		"keycloak")
 			keycloak_backup
 			;;
-		"ds389")
-			ldap_backup
-			;;
+		#"ds389")
+		#	ldap_backup
+		#	;;
 		"nginx")
 			nginx_backup
 			;;
@@ -191,8 +196,9 @@ if [[ "$TYPE" == "manual" ]]; then
 fi
 
 if [[ "$TYPE" == "automatic" ]]; then
+	# Back up everything
 	keycloak_backup
-	ldap_backup
+	#ldap_backup
 	nginx_backup
 	opendkim_backup
 	postfix_backup
@@ -210,8 +216,8 @@ if [[ "$TYPE" == "automatic" ]]; then
 	sources_backup
 
 	# Clean up old automatic backups
-	# TODO
+	restic forget -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE --prune --tag automatic --group-by tags --keep-last 5
 
 	# Clean up  old manual backups
-	# TODO
+	restic forget -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE --prune --tag manual --group-by tags --keep-within 7d
 fi
