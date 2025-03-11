@@ -46,10 +46,6 @@ postgres_dump () {
 	echo "Created $BACKUP_DIR/backup-$DB.sql.gz"
 }
 
-#ldap_dump () {
-	#TODO
-#}
-
 restic_backup () {
 	NAME=$1
 	# Create temp file
@@ -70,9 +66,11 @@ keycloak_backup () {
 	rm "$BACKUP_DIR/backup-keycloak.sql.gz"
 }
 
-#ldap_backup () {
-	#TODO
-#}
+ldap_backup () {
+	podman exec -u dirsrv ldap-ldap dsconf localhost backup create backup
+	restic_backup "ldap" "$VOLUME_DIR/ldap/bak/backup"
+	rm -r "$VOLUME_DIR/ldap/bak/backup"
+}
 
 nginx_backup () {
 	restic_backup "nginx" "$VOLUME_DIR/nginx"

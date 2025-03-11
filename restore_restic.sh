@@ -45,11 +45,6 @@ postgres_restore () {
     rm $FILE
 }
 
-#ldap_restore () {
-	#TODO
-#}
-
-
 ### Restore functions
 
 keycloak_restore () {
@@ -57,9 +52,11 @@ keycloak_restore () {
     rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/keycloak" "$VOLUME_DIR/keycloak"
 }
 
-#ldap_restore () {
-	#TODO
-#}
+ldap_restore () {
+	rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/ldap/bak/backup" "$VOLUME_DIR/ldap/bak/backup"
+    podman exec -u dirsrv ldap-ldap dsconf localhost backup restore backup
+    rm -r "$VOLUME_DIR/ldap/bak/backup"
+}
 
 nginx_restore () {
     rsync -raHAX --info=progress2 "$RESTORE_DIR/$VOLUME_DIR/nginx" "$VOLUME_DIR/nginx"
