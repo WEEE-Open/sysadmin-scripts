@@ -1,0 +1,8 @@
+[Unit]
+Description=Notification for failed restic backup
+After=network.target
+
+[Service]
+EnvironmentFile=/root/bot.env
+Type=simple
+ExecStart=curl -s -o /dev/null -X POST -H "Content-Type: application/json" -d "{\"chat_id\": \"${CHAT_ID}\", \"message_thread_id\": \"${THREAD_ID}\", \"text\": \"Restic backup failed\", \"disable_notification\": false}" https://api.telegram.org/bot${API_TOKEN}/sendMessage
