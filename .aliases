@@ -1,0 +1,47 @@
+# Always use interactive versions of commands to avoid accidental overrides
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+# Container aliases
+alias wp='podman exec -u www-data -it wordpress-cli wp'
+alias occ='podman exec -u www-data -it nextcloud-php php occ'
+alias nginx-reload='podman exec -it nginx-server /bin/sh -c "nginx -t && nginx -s reload"'
+alias network-unfuck='firewall-cmd --reload && podman network reload --all'
+alias network-unfuck-with-nginx='firewall-cmd --reload && podman network reload --all && nginx-reload'
+
+# Aliases and functions for podman operation
+alias podstart='podman pod start'
+alias podstop='podman pod stop'
+alias podrestart='podman pod stop'
+alias podlogs='podman container logs -f'
+
+function containeredit { nano /data/containers/sources/"$1"/containerfiles/"$1"; }
+function podedit { nano /data/containers/sources/"$1"/pod.yml; }
+function podbuild { podman build -f /data/containers/sources/"$1"/containerfiles/"$1" -t "$1":latest /data/containers/sources/"$1"; }
+function podplay { podman kube play --replace /data/containers/sources/"$1"/pod.yml; }
+
+# Functions to update our web stuff
+function update-weeehire {
+    podman exec -u www-data -it weeehire-php git pull;
+    podman exec -u www-data -it weeehire-php composer install --no-dev --optimize-autoloader;
+    podman exec -u www-data -it weeehire-php php database/update-db.php;
+}
+function update-tarallo {
+    podman exec -u www-data -it tarallo-php git pull;
+    podman exec -u www-data -it tarallo-php composer install --no-dev --classmap-authoritative --optimize-autoloader;
+    podman exec -u www-data -it tarallo-php php bin/build-cache;
+    podman exec -u www-data -it tarallo-php php bin/update-db;
+}
+function update-crauto {
+    podman exec -u www-data -it crauto-php git pull;
+    podman exec -u www-data -it crauto-php composer install --no-dev --optimize-autoloader;
+}
+
+# Restic script
+alias backup-restic='/root/scripts/backup_restic.sh'
+alias restore-restic='/root/scripts/restore_restic.sh'
+alias snapshots-restic='restic snapshots -r sftp:rocco-backup:/data/boulangerie-backups/restic --password-file /root/restic.txt --group-by tags'
+
+# Set the prompt
+PS1="\[\033[31m\033[1m\033[5m\]ROOT\[\033[0m\] \w \[\033[1m\]>\[\033[0m\] "
