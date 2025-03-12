@@ -1,0 +1,9 @@
+[Unit]
+Description=Restic backup service
+After=network.target
+OnFailure=backup-failed.service
+
+[Service]
+Type=simple
+Environment=TYPE=automatic
+ExecStart=/root/scripts/backup_restic.sh
