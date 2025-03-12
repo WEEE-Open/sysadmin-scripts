@@ -21,7 +21,7 @@ passwd --expire $USERNAME
 touch /etc/ssh/authorized-keys/$USERNAME
 chown $USERNAME:$USERNAME /etc/ssh/authorized-keys/$USERNAME
 chmod 600 /etc/ssh/authorized-keys/$USERNAME
-#restorecon -Fv /etc/ssh/authorized-keys/$USERNAME
+restorecon -Fv /etc/ssh/authorized-keys/$USERNAME
 
 # Add ssh public key
 echo "Public key: "
