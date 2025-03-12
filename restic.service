@@ -1,7 +1,7 @@
 [Unit]
 Description=Restic backup service
 After=network.target
-OnFailure=backup-fail.service
+OnFailure=backup-failed.service
 
 [Service]
 Type=simple

@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Set variables
 RESTIC_EXTRA_ARGS=$@
 RESTIC_REPOSITORY=sftp:rocco-backup:/data/boulangerie-backups/restic
@@ -213,9 +215,9 @@ if [[ "$TYPE" == "automatic" ]]; then
 	# Sources
 	sources_backup
 
-	# Clean up old automatic backups
+	echo "--- Clearing old automatic snapshots ---"
 	restic forget -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE --prune --tag automatic --group-by tags --keep-last 5
 
-	# Clean up  old manual backups
+	echo "--- Clearing old manual snapshots ---"
 	restic forget -r $RESTIC_REPOSITORY --password-file $RESTIC_PASSWORD_FILE --prune --tag manual --group-by tags --keep-within 7d
 fi
