@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Exit if any errors occur
+set -e
+
+# Read username
+echo "Username: "
+read USERNAME
+
+# Create user and home directory
+adduser -m $USERNAME
+
+# Add user to wheel and allow-ssh
+usermod -aG wheel,allow-ssh $USERNAME
+
+# Set up for a new password to be asked on first login
+passwd --delete $USERNAME
+passwd --expire $USERNAME
+
+# Create ssh key file and set the correct permission and SELinux context
+touch /etc/ssh/authorized-keys/$USERNAME
+chown $USERNAME:$USERNAME /etc/ssh/authorized-keys/$USERNAME
+chmod 600 /etc/ssh/authorized-keys/$USERNAME
+#restorecon -Fv /etc/ssh/authorized-keys/$USERNAME
+
+# Add ssh public key
+echo "Public key: "
+read SSHKEY
+echo $SSHKEY >> /etc/ssh/authorized-keys/$USERNAME
+
+# Finish
+echo "Successfully created new user $USERNAME"
