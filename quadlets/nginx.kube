@@ -1,0 +1,9 @@
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/data/containers/sources/nginx/pod.yaml
+
+[Service]
+ExecStartPost=firewall-cmd --reload && podman network reload --all && podman exec -it nginx-server /bin/sh -c "nginx -t && nginx -s reload"

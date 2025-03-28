@@ -1,0 +1,10 @@
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/data/containers/sources/ldap/pod.yaml
+
+[Unit]
+# Start before reverse proxy
+Before=nginx.service

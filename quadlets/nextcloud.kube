@@ -1,0 +1,15 @@
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/data/containers/sources/nextcloud/pod.yaml
+
+[Unit]
+# Needs Postgres
+Requires=postgres.service
+After=postgres.service
+# Start before Keycloak
+Before=keycloak.service
+# Start before reverse proxy
+Before=nginx.service

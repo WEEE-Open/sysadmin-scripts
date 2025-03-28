@@ -1,0 +1,6 @@
+[Install]
+# Start by default on boot
+WantedBy=multi-user.target default.target
+
+[Kube]
+Yaml=/data/containers/sources/mail/pod.yaml
