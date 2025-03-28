@@ -11,16 +11,24 @@ alias network-unfuck='firewall-cmd --reload && podman network reload --all'
 alias network-unfuck-with-nginx='firewall-cmd --reload && podman network reload --all && nginx-reload'
 
 # Aliases and functions for podman operation
-alias podstart='podman pod start'
-alias podstop='podman pod stop'
-alias podrestart='podman pod stop'
+alias podreload='systemctl daemon-reload'
+alias podstart='systemctl restart'
+alias podstop='systemctl stop'
 alias podlogs='podman container logs -f'
 
 function containeredit { nano /data/containers/sources/"$1"/containerfiles/"$1"; }
 function podedit { nano /data/containers/sources/"$1"/pod.yml; }
 function podbuild { podman build -f /data/containers/sources/"$1"/containerfiles/"$1" -t "$1":latest /data/containers/sources/"$1"; }
-function podplay { podman kube play --replace /data/containers/sources/"$1"/pod.yml; }
 
+alias podstartall="systemctl start 389ds mariadb mysql postgres &&\
+    systemctl start bookstack crauto mail nextcloud tarallo weeehire wordpress yourls &&\
+    systemctl start keycloak &&\
+    systemctl start nginx"
+alias podstopall="systemctl stop nginx &&\
+    systemctl stop keycloak &&\
+    systemctl stop bookstack crauto mail nextcloud tarallo weeehire wordpress yourls &&\
+    systemctl stop 389ds mariadb mysql postgres"
+    
 # Functions to update our web stuff
 function update-weeehire {
     podman exec -u www-data -it weeehire-php git pull;
