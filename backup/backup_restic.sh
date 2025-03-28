@@ -120,9 +120,10 @@ wordpress_backup () {
 }
 
 yourls_backup () {
-	restic_backup "yourls" "$VOLUME_DIR/websites/yourls"
+	mysql_dump "shortener" ""
+	restic_backup "yourls" "$VOLUME_DIR/websites/yourls" "$BACKUP_DIR/backup-shortener.sql.gz"
+	rm "$BACKUP_DIR/backup-shortener.sql.gz"
 }
-
 # Sources
 
 sources_backup () {
