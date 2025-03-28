@@ -3,7 +3,7 @@
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/data/containers/sources/keycloak/pod.yaml
+Yaml=/data/containers/sources/keycloak/pod.yml
 
 [Unit]
 # Needs Postgres

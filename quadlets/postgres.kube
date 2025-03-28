@@ -3,4 +3,4 @@
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/data/containers/sources/postgres/pod.yaml
+Yaml=/data/containers/sources/postgres/pod.yml

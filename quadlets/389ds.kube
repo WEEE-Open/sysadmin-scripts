@@ -3,7 +3,7 @@
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/data/containers/sources/ldap/pod.yaml
+Yaml=/data/containers/sources/ldap/pod.yml
 
 [Unit]
 # Start before reverse proxy

@@ -3,7 +3,7 @@
 WantedBy=multi-user.target default.target
 
 [Kube]
-Yaml=/data/containers/sources/bookstack/pod.yaml
+Yaml=/data/containers/sources/bookstack/pod.yml
 
 [Unit]
 # Needs MariaDB
