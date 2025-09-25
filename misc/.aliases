@@ -6,6 +6,7 @@ alias mv='mv -i'
 # Container aliases
 alias wp='podman exec -u www-data -it wordpress-cli wp'
 alias occ='podman exec -u www-data -it nextcloud-php php occ'
+alias nextcloud-unlock='/root/scripts/nextcloud_unlock.sh'
 alias nginx-reload='podman exec -it nginx-server /bin/sh -c "nginx -t && nginx -s reload"'
 alias network-unfuck='firewall-cmd --reload && podman network reload --all'
 alias network-unfuck-with-nginx='firewall-cmd --reload && podman network reload --all && nginx-reload'
